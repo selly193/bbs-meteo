@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Meteo Widget NYC Live</title>
+<title>Meteo Widget NYC Live FA</title>
+<!-- Font Awesome CDN -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <style>
   body {
     margin: 0;
@@ -37,10 +39,9 @@
     justify-content: center;
     gap: 8px;
   }
-  .temp svg {
-    width: 40px; /* icone più grandi */
-    height: 40px;
-    fill: #F3EEEE;
+  .temp i {
+    font-size: 40px;
+    color: #F3EEEE;
   }
   .desc {
     font-size: 0.9rem;
@@ -53,67 +54,76 @@
     <h2>New York City</h2>
     <div class="temp">
       <span id="temp">-- °C</span>
-      <span id="icon"></span>
+      <i id="icon" class="fas fa-sun"></i>
     </div>
     <div class="desc" id="desc">Caricamento...</div>
   </div>
 
 <script>
-const svgIcons = {
-  // Sole con raggi
-  "01d": `<svg viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="12"/>
-            <line x1="32" y1="2" x2="32" y2="14" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="32" y1="50" x2="32" y2="62" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="2" y1="32" x2="14" y2="32" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="50" y1="32" x2="62" y2="32" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="10" y1="10" x2="18" y2="18" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="46" y1="46" x2="54" y2="54" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="10" y1="54" x2="18" y2="46" stroke="#F3EEEE" stroke-width="2"/>
-            <line x1="46" y1="18" x2="54" y2="10" stroke="#F3EEEE" stroke-width="2"/>
-          </svg>`,
-  "02d": `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="12"/><circle cx="44" cy="20" r="8"/></svg>`, // Poco nuvoloso
-  "03d": `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="20" ry="12"/></svg>`, // Nuvoloso
-  "09d": `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="20" ry="12"/><line x1="32" y1="40" x2="32" y2="50"/></svg>`, // Pioggia leggera
-  "10d": `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="20" ry="12"/><line x1="28" y1="40" x2="28" y2="50"/><line x1="36" y1="40" x2="36" y2="50"/></svg>`, // Pioggia
-  "13d": `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="20" ry="12"/><line x1="32" y1="40" x2="28" y2="50"/><line x1="32" y1="40" x2="36" y2="50"/></svg>`, // Neve
-  "11d": `<svg viewBox="0 0 64 64"><polygon points="32,16 36,28 48,28 38,36 42,48 32,40 22,48 26,36 16,28 28,28"/></svg>`, // Temporale
-  "50d": `<svg viewBox="0 0 64 64"><ellipse cx="32" cy="32" rx="24" ry="12"/></svg>` // Nebbia
+// Mappatura codici Open-Meteo → classi Font Awesome
+const weatherFAclass = {
+  0: ["fa-sun", "fa-moon"],           // Sereno Giorno / Notte
+  1: ["fa-cloud-sun", "fa-cloud-moon"], // Poco nuvoloso Giorno / Notte
+  2: ["fa-cloud-sun", "fa-cloud-moon"], // Variabile
+  3: ["fa-cloud", "fa-cloud"],         // Nuvoloso
+  45: ["fa-smog", "fa-smog"],          // Nebbia
+  48: ["fa-smog", "fa-smog"],          // Nebbia con brina
+  51: ["fa-cloud-rain", "fa-cloud-rain"], // Pioviggine leggera
+  53: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioviggine moderata
+  55: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioviggine intensa
+  61: ["fa-cloud-rain", "fa-cloud-moon-rain"], // Pioggia leggera
+  63: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioggia moderata
+  65: ["fa-cloud-bolt", "fa-cloud-bolt"], // Pioggia intensa
+  71: ["fa-snowflake", "fa-snowflake"], // Neve leggera
+  73: ["fa-snowflake", "fa-snowflake"], // Neve moderata
+  75: ["fa-snowflake", "fa-snowflake"], // Neve intensa
+  95: ["fa-cloud-bolt", "fa-cloud-bolt"] // Temporale
 };
 
+// Descrizione meteo
+const descMapping = {
+  0: "Sereno",
+  1: "Poco nuvoloso",
+  2: "Variabile",
+  3: "Nuvoloso",
+  45: "Nebbia",
+  48: "Nebbia con brina",
+  51: "Pioviggine leggera",
+  53: "Pioviggine moderata",
+  55: "Pioviggine intensa",
+  61: "Pioggia leggera",
+  63: "Pioggia moderata",
+  65: "Pioggia intensa",
+  71: "Neve leggera",
+  73: "Neve moderata",
+  75: "Neve intensa",
+  95: "Temporale"
+};
+
+// Giorno/notte
+function isDay() {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 18;
+}
+
+// Recupera e aggiorna meteo
 async function getWeather() {
   const lat = 40.7128, lon = -74.0060;
   try {
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`);
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=America/New_York`);
     const data = await res.json();
 
-    const temp = Math.round(data.current.temperature_2m);
-    const code = data.current.weathercode;
+    const temp = Math.round(data.current_weather.temperature);
+    const code = data.current_weather.weathercode;
 
-    const conditions = {
-      0: ["Sereno", "01d"],
-      1: ["Poco nuvoloso", "02d"],
-      2: ["Variabile", "02d"],
-      3: ["Nuvoloso", "03d"],
-      45: ["Nebbia", "50d"],
-      48: ["Nebbia con brina", "50d"],
-      51: ["Pioviggine leggera", "09d"],
-      53: ["Pioviggine moderata", "09d"],
-      55: ["Pioviggine intensa", "09d"],
-      61: ["Pioggia leggera", "10d"],
-      63: ["Pioggia moderata", "10d"],
-      65: ["Pioggia intensa", "10d"],
-      71: ["Neve leggera", "13d"],
-      73: ["Neve moderata", "13d"],
-      75: ["Neve intensa", "13d"],
-      95: ["Temporale", "11d"]
-    };
+    const day = isDay() ? 0 : 1;
+    const iconClass = weatherFAclass[code] ? weatherFAclass[code][day] : "fa-sun";
 
-    const [desc, iconCode] = conditions[code] || ["N/D", "01d"];
+    const iconEl = document.getElementById("icon");
+    iconEl.className = "fas " + iconClass;
 
     document.getElementById("temp").textContent = `${temp} °C`;
-    document.getElementById("desc").textContent = desc;
-    document.getElementById("icon").innerHTML = svgIcons[iconCode] || svgIcons["01d"];
+    document.getElementById("desc").textContent = descMapping[code] || "N/D";
   } catch (err) {
     console.error("Errore nel recupero del meteo:", err);
     document.getElementById("desc").textContent = "Errore dati";
