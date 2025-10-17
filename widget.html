@@ -40,7 +40,7 @@
     gap: 8px;
   }
   .temp i {
-    font-size: 32px; /* icone ridotte rispetto alla versione precedente */
+    font-size: 32px; /* icone ridotte */
     color: #F3EEEE;
   }
   .desc {
@@ -62,22 +62,22 @@
 <script>
 // Mappatura codici Open-Meteo → classi Font Awesome
 const weatherFAclass = {
-  0: ["fa-sun", "fa-moon"],           // Sereno Giorno / Notte
-  1: ["fa-cloud-sun", "fa-cloud-moon"], // Poco nuvoloso Giorno / Notte
-  2: ["fa-cloud-sun", "fa-cloud-moon"], // Variabile
-  3: ["fa-cloud", "fa-cloud"],         // Nuvoloso
-  45: ["fa-smog", "fa-smog"],          // Nebbia
-  48: ["fa-smog", "fa-smog"],          // Nebbia con brina
-  51: ["fa-cloud-rain", "fa-cloud-rain"], // Pioviggine leggera
-  53: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioviggine moderata
-  55: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioviggine intensa
-  61: ["fa-cloud-rain", "fa-cloud-moon-rain"], // Pioggia leggera
-  63: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], // Pioggia moderata
-  65: ["fa-cloud-bolt", "fa-cloud-bolt"], // Pioggia intensa
-  71: ["fa-snowflake", "fa-snowflake"], // Neve leggera
-  73: ["fa-snowflake", "fa-snowflake"], // Neve moderata
-  75: ["fa-snowflake", "fa-snowflake"], // Neve intensa
-  95: ["fa-cloud-bolt", "fa-cloud-bolt"] // Temporale
+  0: ["fa-sun", "fa-moon"],           
+  1: ["fa-cloud-sun", "fa-cloud-moon"], 
+  2: ["fa-cloud-sun", "fa-cloud-moon"], 
+  3: ["fa-cloud", "fa-cloud"],         
+  45: ["fa-smog", "fa-smog"],          
+  48: ["fa-smog", "fa-smog"],          
+  51: ["fa-cloud-rain", "fa-cloud-rain"], 
+  53: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], 
+  55: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], 
+  61: ["fa-cloud-rain", "fa-cloud-moon-rain"], 
+  63: ["fa-cloud-showers-heavy", "fa-cloud-showers-heavy"], 
+  65: ["fa-cloud-bolt", "fa-cloud-bolt"], 
+  71: ["fa-snowflake", "fa-snowflake"], 
+  73: ["fa-snowflake", "fa-snowflake"], 
+  75: ["fa-snowflake", "fa-snowflake"], 
+  95: ["fa-cloud-bolt", "fa-cloud-bolt"] 
 };
 
 // Descrizione meteo
@@ -93,4 +93,48 @@ const descMapping = {
   55: "Pioviggine intensa",
   61: "Pioggia leggera",
   63: "Pioggia moderata",
-  65: "Pio
+  65: "Pioggia intensa",
+  71: "Neve leggera",
+  73: "Neve moderata",
+  75: "Neve intensa",
+  95: "Temporale"
+};
+
+// Funzione giorno/notte
+function isDay() {
+  const hour = new Date().getHours();
+  return hour >= 6 && hour < 18;
+}
+
+// Recupera e aggiorna meteo
+async function getWeather() {
+  const lat = 40.7128, lon = -74.0060;
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=America/New_York`);
+    const data = await res.json();
+
+    const temp = Math.round(data.current_weather.temperature);
+    const code = data.current_weather.weathercode;
+
+    const day = isDay() ? 0 : 1;
+    const iconClass = weatherFAclass[code] ? weatherFAclass[code][day] : "fa-sun";
+
+    const iconEl = document.getElementById("icon");
+    iconEl.className = "fas " + iconClass;
+
+    document.getElementById("temp").textContent = `${temp} °C`;
+    document.getElementById("desc").textContent = descMapping[code] || "N/D";
+  } catch (err) {
+    console.error("Errore nel recupero del meteo:", err);
+    document.getElementById("desc").textContent = "Errore dati";
+  }
+}
+
+// Prima chiamata immediata
+getWeather();
+
+// Aggiorna ogni 10 minuti
+setInterval(getWeather, 600000);
+</script>
+</body>
+</html>
