@@ -27,8 +27,12 @@
     box-sizing: border-box;
   }
   h2 {
-    font-size: 1rem;
-    margin: 0 0 5px;
+    font-size: 1.5rem;
+    margin: 0 0 3px;
+  }
+  .date {
+    font-size: 0.6rem;
+    margin-bottom: 5px;
   }
   .temp {
     font-size: 2rem;
@@ -40,18 +44,19 @@
     gap: 8px;
   }
   .temp i {
-    font-size: 40px;
+    font-size: 25px;
     color: #F3EEEE;
   }
   .desc {
     font-size: 0.9rem;
-    margin-top: 3px;
+    margin-top: 0px;
   }
 </style>
 </head>
 <body>
   <div class="widget">
     <h2>New York City</h2>
+    <div id="date" class="date"></div> <!-- Data corrente -->
     <div class="temp">
       <span id="temp">-- °C</span>
       <i id="icon" class="fas fa-sun"></i>
@@ -106,6 +111,13 @@ function isDay() {
   return hour >= 6 && hour < 18;
 }
 
+// Aggiorna data corrente
+function updateDate() {
+  const now = new Date();
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById("date").textContent = now.toLocaleDateString('it-IT', options);
+}
+
 // Recupera e aggiorna meteo
 async function getWeather() {
   const lat = 40.7128, lon = -74.0060;
@@ -124,6 +136,10 @@ async function getWeather() {
 
     document.getElementById("temp").textContent = `${temp} °C`;
     document.getElementById("desc").textContent = descMapping[code] || "N/D";
+
+    // Aggiorna anche la data
+    updateDate();
+
   } catch (err) {
     console.error("Errore nel recupero del meteo:", err);
     document.getElementById("desc").textContent = "Errore dati";
